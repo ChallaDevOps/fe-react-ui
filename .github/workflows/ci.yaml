@@ -1,0 +1,25 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Log in to ACR
+      uses: azure/docker-login@v1
+      with:
+        login-server: <ACR_NAME>.azurecr.io
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    - name: Build image
+      run: docker build -t <ACR_NAME>.azurecr.io/myapp:latest .
+
+    - name: Push image
+      run: docker push <ACR_NAME>.azurecr.io/myapp:latest
