@@ -9,26 +9,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout code
+      # Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2️⃣ Login to Azure using JSON credentials (Service Principal)
+      # Azure Login using individual secrets (NO JSON!)
       - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          auth-type: service-principal
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # 3️⃣ Login to ACR
+      # Login to ACR
       - name: Login to ACR
         run: az acr login --name ${{ secrets.ACR_NAME }}
 
-      # 4️⃣ Build Docker image
+      # Build Docker image
       - name: Build Docker image
         run: |
           docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/myapp:latest .
 
-      # 5️⃣ Push Docker image to ACR
+      # Push Docker image to ACR
       - name: Push Docker image
         run: |
           docker push ${{ secrets.ACR_NAME }}.azurecr.io/myapp:latest
