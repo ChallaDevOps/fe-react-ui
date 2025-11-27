@@ -1,41 +1,22 @@
-name: Build and Push Docker Image
+name: Build & Push Docker Image
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      # Azure Login using individual secrets (NO JSON!)
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-            auth-type: SERVICE_PRINCIPAL
-            client-id: ${{ secrets.AZURE_CLIENT_ID }}
-            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-            creds: |
-             {
-               "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}"
-             }
+    - name: Log in to Docker Hub
+      run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-      # Login to ACR
-      - name: Login to ACR
-        run: az acr login --name ${{ secrets.ACR_NAME }}
+    - name: Build Docker image
+      run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest .
 
-      # Build Docker image
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/myapp:latest .
-
-      # Push Docker image to ACR
-      - name: Push Docker image
-        run: |
-          docker push ${{ secrets.ACR_NAME }}.azurecr.io/myapp:latest
+    - name: Push Docker image
+      run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
