@@ -1,0 +1,165 @@
+########################################
+# Frontend Helm Chart - Dev Environment Values  ##
+##################################################
+helmChart:
+  path: frontend/
+  url: https://github.com/DATA-NRKTX/tpo-ui-helmchart/
+  revision: main
+
+name: dev-frontend
+environment : dev
+
+imagePullSecrets:
+  name: regcred-nexus
+  dockerconfigjson: /path/to/.docker/config.json.  ##need to check
+
+
+
+service:
+  name: dev-frontend-svc
+  type: ClusterIP
+  port: 3000      #   CHECK WITH TEAM ON PORT
+
+deployment:
+  name: dev-frontend-deployment
+  label: dev-frontend
+
+autoscaling:
+  enabled: true
+  name: dev-frontend-hpa
+  minReplicas: 1
+  maxReplicas: 5
+  metrics :
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+resources:
+  enabled: true
+  limits:
+    cpu: 500m ##CHECK WITH TEAM
+    memory: 512Mi
+  requests:
+    cpu: 250m  # 0.25 CPU cores
+    memory: 256Mi   ### CHECK WITH TEAM
+
+# make sure to keep the values from frontend and backend service names
+ingress:
+  enabled: true
+  className: "nginx"
+  name: dev-ingress
+  annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+  host: dev-frontend.example.com   # dev environment frontend dns name CHECK
+  paths:
+    - path: "/"
+      pathType: Prefix
+      serviceName: dev-frontend-svc
+      servicePort: 3000       ## same ;ort what we give in service
+    - path: "/api"
+      pathType: Prefix
+      serviceName: dev-backend-svc
+      servicePort:  8000    # backend service port. ### check with team
+  tls:
+    enabled: true
+    secretName: ingress-tls-secret
+    # hosts:
+    #     - dev-frontend.example.com   # dev environment frontend dns name
+
+
+externalSecret:
+  enabled: true
+  name: fe-app-secrets
+  refreshInterval: 1h
+  secrets:
+    # server details for frontend dev env
+    - secretKey: VITE_REACT_APP_BACKEND
+      remoteRef: VITE-REACT-APP-BACKEND-DEV
+    - secretKey: VITE_MSAL_CLIENT_ID
+      remoteRef: VITE-MSAL-CLIENT-ID-DEV
+    - secretKey: VITE_MSAL_AUTHORITY
+      remoteRef: VITE-MSAL-AUTHORITY-DEV
+    - secretKey: VITE_MSAL_REDIRECT_URI
+      remoteRef: VITE-MSAL-REDIRECT-URI-DEV
+        
+
+replicaCount: 1
+app:
+  image: data-kacr-docker-hosted.artifactrepo.kenvue.com/frontend-iamge # need to check
+  secretMountPath: /mnt/secrets  # where all secrets will appear as files
+
+    #repository: myregistry.azurecr.io/frontend
+    # tag: "1.0.0"  ## replcase with version of image
+tlsSecret:
+  enabled: true
+  name: ingress-tls-secret
+  refreshInterval: 1h
+  certKey: tls-cert-dev1   # Azure Key Vault key for the certificate (PEM)
+  keyKey: tls-key-dev     # Azure Key Vault key for the private key (PEM)
+
+
+
+      # insside the container  file with reg red that stores container key  which need to pull image from ACE
+  # service:
+  #   type: ClusterIP
+  #   port: 80
+
+probes:
+  livenessPath: /healthz.  ## checks if the app is healthy; if it fails, the pod restarts.
+  readinessPath: /ready.   ## checks if app is ready to serve traffic.
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 2
+
+# env:
+#   - name: API_BASE
+#     value: https://api.example.com
+# secrets:
+#   useKeyVault: true
+#   k8sSecretName: frontend-kv-secret # name of k8s secret created via CSI driver sync
+
+
+
+
+# backend:
+#   services:
+#     - name: customer-config-ms
+#       image: myrepo/customer-config-ms:latest
+#       port: 8081
+#       path: /customer-config
+
+#     - name: promotions-ms
+#       image: myrepo/promotions-ms:latest
+#       port: 8082
+#       path: /promotions
+
+#     - name: scenario-manager-ms
+#       image: myrepo/scenario-manager-ms:latest
+#       port: 8083
+#       path: /scenario
+
+#     - name: admin-ms
+#       image: myrepo/admin-ms:latest
+#       port: 8084
+#       path: /admin
+
+#     - name: reports-ms
+#       image: myrepo/reports-ms:latest
+#       port: 8085
+#       path: /reports
+      
+#     - name: ums
+#       image: myrepo/ums:latest
+#       port: 8086
+#       path: /ums
